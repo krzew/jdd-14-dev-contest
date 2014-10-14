@@ -3,7 +3,6 @@ package pl.allegro.jdd;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,8 +27,8 @@ public class StructureDiff {
         checkNotNull(oldCTO);
         checkNotNull(newCTO);
         Javers javers = JaversBuilder.javers().build();
-                
-        Diff javersDiff = javers.compare(flattenEmployeeStructure(oldCTO), flattenEmployeeStructure(newCTO));
+        
+        Diff javersDiff = javers.compare(oldCTO, newCTO);
 
         java.util.Map<String, List<Change>> changesBucketsMap = javersDiff.getChanges().stream().collect(Collectors.groupingBy(this::categorizeChanges));
         List<Employee> fired = getEmployeesFromChanges(changesBucketsMap.get("delete"));
@@ -61,22 +60,6 @@ public class StructureDiff {
 			return "delete";
 		}
 		return "other";
-	}
-	
-	/*
-	 * FIXME Flattening employee tree to only 2 levels, as JaVers has problems with deep structures
-	 */
-	private Employee flattenEmployeeStructure(Employee sourceEmployee){
-		Employee boss = new Employee(sourceEmployee.getName(),sourceEmployee.getSalary());
-		LinkedList<Employee> temporaryList = new LinkedList<>();
-		sourceEmployee.getSubordinates().forEach(temporaryList::add);
-			while(!temporaryList.isEmpty()){
-				Employee subordinate =temporaryList.pollFirst();
-				boss.addSubordinate(new Employee(subordinate.getName(),subordinate.getSalary()));
-				subordinate.getSubordinates().forEach(temporaryList::add);
-			}
-		
-		return boss;
 	}
 	
 }
