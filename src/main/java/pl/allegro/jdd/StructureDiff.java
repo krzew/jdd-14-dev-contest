@@ -22,7 +22,6 @@ public class StructureDiff {
 	
 	private static final String SALARY_PROPERTY_NAME = "salary";
 	
-	
     public Changes calculate(Employee oldCTO, Employee newCTO){
         checkNotNull(oldCTO);
         checkNotNull(newCTO);
@@ -30,14 +29,10 @@ public class StructureDiff {
         
         Diff javersDiff = javers.compare(oldCTO, newCTO);
 
-        java.util.Map<String, List<Change>> changesBucketsMap = javersDiff.getChanges().stream().collect(Collectors.groupingBy(this::categorizeChanges));
-        List<Employee> fired = getEmployeesFromChanges(changesBucketsMap.get("delete"));
-        List<Employee> hired = getEmployeesFromChanges(changesBucketsMap.get("new"));
-        List<Employee> changed = getEmployeesFromChanges(changesBucketsMap.get("changedSalary"));
+        List<Employee> fired = getEmployeesFromChanges(javersDiff.getChanges((change)->(change instanceof ObjectRemoved)));
+        List<Employee> hired = getEmployeesFromChanges(javersDiff.getChanges((change)->(change instanceof NewObject)));
+        List<Employee> changed = getEmployeesFromChanges( javersDiff.getChanges((change)->(change instanceof PropertyChange && ((PropertyChange)change).getProperty().getName().equals(SALARY_PROPERTY_NAME))));
         
-        //changes may contain also some of the created and removed
-        changed.removeAll(fired);
-        changed.removeAll(hired);
         return new Changes(fired,hired,changed);
     }
     
@@ -48,18 +43,5 @@ public class StructureDiff {
     	return changesList.stream().map(change->{return (Employee)(change.getAffectedCdo());}).collect(Collectors.toList());
     }
     
-    //FIXME ugly code, should be improved
-	private String categorizeChanges(Change change){
-		if(change instanceof PropertyChange){
-			if(((PropertyChange)change).getProperty().getName().equals(SALARY_PROPERTY_NAME)){
-			return "changedSalary";
-			}
-		}else if (change instanceof NewObject){
-			return "new";
-		}else if(change instanceof ObjectRemoved){
-			return "delete";
-		}
-		return "other";
-	}
 	
 }
